@@ -1,412 +1,205 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="vi">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Tạo Móc Khóa Kỷ Niệm NFC</title>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <style>
-      * {
-        box-sizing: border-box;
-        margin: 0;
-        padding: 0;
-        font-family:
-          -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      }
-      body {
-        background-color: #fbcfe8;
-        display: flex;
-        justify-content: center;
-        padding: 20px 10px;
-        min-height: 100vh;
-      }
-      .card {
-        background: #fff5f7;
-        border-radius: 24px;
-        padding: 24px 20px;
-        width: 100%;
-        max-width: 450px;
-        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
-      }
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tạo Móc Khóa Kỷ Niệm NFC</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    body { background-color: #fbcfe8; display: flex; justify-content: center; padding: 20px 10px; min-height: 100vh; }
+    .card { background: #fff5f7; border-radius: 24px; padding: 24px 20px; width: 100%; max-width: 450px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); }
+    
+    .form-group { margin-bottom: 20px; }
+    label { display: block; font-weight: 700; color: #9f1239; margin-bottom: 8px; font-size: 15px; }
+    label span { font-weight: 400; color: #be123c; font-size: 12px; opacity: 0.85; }
+    
+    input[type="text"], textarea {
+      width: 100%; padding: 12px 14px; border: 1px solid #fecdd3; border-radius: 14px;
+      background: #ffffff; font-size: 14px; color: #4c0519; outline: none; transition: 0.2s;
+    }
+    input[type="text"]:focus, textarea:focus { border-color: #f43f5e; box-shadow: 0 0 0 3px rgba(244,63,94,0.15); }
+    textarea { height: 100px; resize: vertical; line-height: 1.5; }
 
-      .form-group {
-        margin-bottom: 20px;
-      }
-      label {
-        display: block;
-        font-weight: 700;
-        color: #9f1239;
-        margin-bottom: 8px;
-        font-size: 15px;
-      }
-      label span {
-        font-weight: 400;
-        color: #be123c;
-        font-size: 12px;
-        opacity: 0.85;
-      }
+    /* Sơ đồ 6 ảnh chuẩn layout ảnh mẫu */
+    .photo-grid-layout {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      grid-template-rows: 110px 110px 110px;
+      gap: 8px;
+      margin-top: 10px;
+    }
 
-      input[type="text"],
-      textarea {
-        width: 100%;
-        padding: 12px 14px;
-        border: 1px solid #fecdd3;
-        border-radius: 14px;
-        background: #ffffff;
-        font-size: 14px;
-        color: #4c0519;
-        outline: none;
-        transition: 0.2s;
-      }
-      input[type="text"]:focus,
-      textarea:focus {
-        border-color: #f43f5e;
-        box-shadow: 0 0 0 3px rgba(244, 63, 94, 0.15);
-      }
-      textarea {
-        height: 100px;
-        resize: vertical;
-        line-height: 1.5;
-      }
+    .photo-box {
+      border: 2px dashed #f43f5e; border-radius: 12px; display: flex;
+      flex-direction: column; align-items: center; justify-content: center; background: #fff;
+      cursor: pointer; position: relative; overflow: hidden; transition: 0.2s; text-align: center;
+    }
+    .photo-box:hover { background: #ffe4e6; }
+    .photo-box .plus { font-size: 18px; color: #be123c; font-weight: bold; }
+    .photo-box .pos-tag { font-size: 11px; color: #9f1239; font-weight: 600; line-height: 1.2; padding: 0 4px; }
+    .photo-box img { width: 100%; height: 100%; object-fit: cover; position: absolute; top: 0; left: 0; display: none; }
+    .photo-box input[type="file"] { display: none; }
 
-      /* Layout chuẩn 6 ảnh đúng mô hình ảnh mẫu */
-      .photo-grid-layout {
-        display: grid;
-        grid-template-columns: 1fr 1fr 1fr;
-        grid-template-rows: 110px 110px 110px;
-        gap: 8px;
-        margin-top: 10px;
-      }
+    .box-1 { grid-column: 1; grid-row: 1 / 3; } /* Ảnh 1: Dọc trái */
+    .box-2 { grid-column: 2 / 4; grid-row: 1; } /* Ảnh 2: Ngang dài trên */
+    .box-3 { grid-column: 2; grid-row: 2; }     /* Ảnh 3: Giữa trái */
+    .box-4 { grid-column: 3; grid-row: 2; }     /* Ảnh 4: Giữa phải */
+    .box-5 { grid-column: 1; grid-row: 3; }     /* Ảnh 5: Vuông dưới trái */
+    .box-6 { grid-column: 2 / 4; grid-row: 3; } /* Ảnh 6: Ngang dài dưới */
 
-      .photo-box {
-        border: 2px dashed #f43f5e;
-        border-radius: 12px;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        background: #fff;
-        cursor: pointer;
-        position: relative;
-        overflow: hidden;
-        transition: 0.2s;
-        text-align: center;
-      }
-      .photo-box:hover {
-        background: #ffe4e6;
-      }
-      .photo-box .plus {
-        font-size: 18px;
-        color: #be123c;
-        font-weight: bold;
-      }
-      .photo-box .pos-tag {
-        font-size: 11px;
-        color: #9f1239;
-        font-weight: 600;
-        line-height: 1.2;
-        padding: 0 4px;
-      }
-      .photo-box img {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-        position: absolute;
-        top: 0;
-        left: 0;
-      }
-      .photo-box input[type="file"] {
-        display: none;
-      }
+    .btn-submit {
+      width: 100%; background: #f43f5e; color: white; border: none; padding: 15px;
+      font-size: 16px; font-weight: bold; border-radius: 14px; cursor: pointer;
+      box-shadow: 0 4px 12px rgba(244,63,94,0.3); transition: 0.2s; margin-top: 10px;
+    }
+    .btn-submit:hover { background: #e11d48; }
 
-      /* Định vị kích thước 6 ô theo đúng layout */
-      .box-1 {
-        grid-column: 1;
-        grid-row: 1 / 3;
-      } /* Ảnh 1: Dọc bên trái */
-      .box-2 {
-        grid-column: 2 / 4;
-        grid-row: 1;
-      } /* Ảnh 2: Ngang dài trên */
-      .box-3 {
-        grid-column: 2;
-        grid-row: 2;
-      } /* Ảnh 3: Giữa trái */
-      .box-4 {
-        grid-column: 3;
-        grid-row: 2;
-      } /* Ảnh 4: Giữa phải */
-      .box-5 {
-        grid-column: 1;
-        grid-row: 3;
-      } /* Ảnh 5: Vuông dưới trái */
-      .box-6 {
-        grid-column: 2 / 4;
-        grid-row: 3;
-      } /* Ảnh 6: Ngang dài dưới */
+    #status { text-align: center; margin-top: 15px; font-weight: 600; color: #be123c; font-size: 14px; }
+    .result-box {
+      margin-top: 18px; padding: 14px; background: #dcfce7; border-radius: 14px;
+      border: 1px solid #86efac; display: none; text-align: center;
+    }
+    .result-box a { color: #166534; font-weight: bold; word-break: break-all; font-size: 13px; }
+  </style>
+</head>
+<body>
 
-      .btn-submit {
-        width: 100%;
-        background: #f43f5e;
-        color: white;
-        border: none;
-        padding: 15px;
-        font-size: 16px;
-        font-weight: bold;
-        border-radius: 14px;
-        cursor: pointer;
-        box-shadow: 0 4px 12px rgba(244, 63, 94, 0.3);
-        transition: 0.2s;
-        margin-top: 10px;
-      }
-      .btn-submit:hover {
-        background: #e11d48;
-      }
+  <div class="card">
+    <div class="form-group">
+      <label>Gửi tới ai?</label>
+      <input type="text" id="recipient_name" placeholder="VD: Chị Lan xinh đẹp">
+    </div>
 
-      #status {
-        text-align: center;
-        margin-top: 15px;
-        font-weight: 600;
-        color: #be123c;
-        font-size: 14px;
-      }
-      .result-box {
-        margin-top: 18px;
-        padding: 14px;
-        background: #dcfce7;
-        border-radius: 14px;
-        border: 1px solid #86efac;
-        display: none;
-        text-align: center;
-      }
-      .result-box a {
-        color: #166534;
-        font-weight: bold;
-        word-break: break-all;
-        font-size: 13px;
-      }
-    </style>
-  </head>
-  <body>
-    <div class="card">
-      <div class="form-group">
-        <label>Gửi tới ai?</label>
-        <input
-          type="text"
-          id="recipient_name"
-          placeholder="VD: Chị Lan xinh đẹp"
-        />
-      </div>
-
-      <div class="form-group">
-        <label>6 Ảnh kỷ niệm <span>(Bấm vào từng khung tương ứng)</span></label>
-
-        <!-- Sơ đồ mô phỏng 6 khung ảnh -->
-        <div class="photo-grid-layout">
-          <!-- Ô 1: Ảnh dọc bên trái -->
-          <div class="photo-box box-1" onclick="triggerFile('file-1')">
-            <span class="plus">+</span
-            ><span class="pos-tag">Ảnh 1<br />(Dọc)</span>
-            <img id="prev-1" /><input
-              type="file"
-              id="file-1"
-              accept="image/*"
-              onchange="previewImg(1)"
-            />
-          </div>
-
-          <!-- Ô 2: Ảnh ngang ở trên -->
-          <div class="photo-box box-2" onclick="triggerFile('file-2')">
-            <span class="plus">+</span
-            ><span class="pos-tag">Ảnh 2 (Ngang dài trên)</span>
-            <img id="prev-2" /><input
-              type="file"
-              id="file-2"
-              accept="image/*"
-              onchange="previewImg(2)"
-            />
-          </div>
-
-          <!-- Ô 3: Ảnh giữa trái -->
-          <div class="photo-box box-3" onclick="triggerFile('file-3')">
-            <span class="plus">+</span><span class="pos-tag">Ảnh 3</span>
-            <img id="prev-3" /><input
-              type="file"
-              id="file-3"
-              accept="image/*"
-              onchange="previewImg(3)"
-            />
-          </div>
-
-          <!-- Ô 4: Ảnh giữa phải -->
-          <div class="photo-box box-4" onclick="triggerFile('file-4')">
-            <span class="plus">+</span><span class="pos-tag">Ảnh 4</span>
-            <img id="prev-4" /><input
-              type="file"
-              id="file-4"
-              accept="image/*"
-              onchange="previewImg(4)"
-            />
-          </div>
-
-          <!-- Ô 5: Ảnh dưới bên trái -->
-          <div class="photo-box box-5" onclick="triggerFile('file-5')">
-            <span class="plus">+</span><span class="pos-tag">Ảnh 5</span>
-            <img id="prev-5" /><input
-              type="file"
-              id="file-5"
-              accept="image/*"
-              onchange="previewImg(5)"
-            />
-          </div>
-
-          <!-- Ô 6: Ảnh ngang ở dưới -->
-          <div class="photo-box box-6" onclick="triggerFile('file-6')">
-            <span class="plus">+</span
-            ><span class="pos-tag">Ảnh 6 (Ngang dài dưới)</span>
-            <img id="prev-6" /><input
-              type="file"
-              id="file-6"
-              accept="image/*"
-              onchange="previewImg(6)"
-            />
-          </div>
+    <div class="form-group">
+      <label>6 Ảnh kỷ niệm <span>(Chạm vào từng ô tương ứng)</span></label>
+      <div class="photo-grid-layout">
+        <div class="photo-box box-1" onclick="triggerFile('file-1')">
+          <span class="plus">+</span><span class="pos-tag">Ảnh 1<br>(Dọc)</span>
+          <img id="prev-1"><input type="file" id="file-1" accept="image/*" onchange="previewImg(1)">
         </div>
-      </div>
-
-      <div class="form-group">
-        <label>Lời chào màn hình đầu</label>
-        <input type="text" id="greeting" value="✨ Cảm ơn vì đã đến ✨" />
-      </div>
-
-      <div class="form-group">
-        <label>Tiêu đề khung ảnh</label>
-        <input
-          type="text"
-          id="title"
-          value="💌 Một góc nhỏ dành cho những kỷ niệm của chúng mình"
-        />
-      </div>
-
-      <div class="form-group">
-        <label>Lời nhắn <span>(mỗi dòng là một câu)</span></label>
-        <textarea
-          id="message"
-          placeholder="Gửi bạn,&#10;Cảm ơn vì đã đến và cùng mình lưu lại những khoảnh khắc thật đẹp..."
-        ></textarea>
-      </div>
-
-      <button class="btn-submit" id="btn-submit" onclick="handleUpload()">
-        Tạo Link Móc Khóa
-      </button>
-      <div id="status"></div>
-
-      <div class="result-box" id="result-box">
-        <p
-          style="
-            color: #166534;
-            margin-bottom: 6px;
-            font-weight: bold;
-            font-size: 14px;
-          "
-        >
-          🎉 Link đã sẵn sàng để ghi vào NFC!
-        </p>
-        <a id="generated-link" href="#" target="_blank"></a>
+        <div class="photo-box box-2" onclick="triggerFile('file-2')">
+          <span class="plus">+</span><span class="pos-tag">Ảnh 2 (Ngang trên)</span>
+          <img id="prev-2"><input type="file" id="file-2" accept="image/*" onchange="previewImg(2)">
+        </div>
+        <div class="photo-box box-3" onclick="triggerFile('file-3')">
+          <span class="plus">+</span><span class="pos-tag">Ảnh 3</span>
+          <img id="prev-3"><input type="file" id="file-3" accept="image/*" onchange="previewImg(3)">
+        </div>
+        <div class="photo-box box-4" onclick="triggerFile('file-4')">
+          <span class="plus">+</span><span class="pos-tag">Ảnh 4</span>
+          <img id="prev-4"><input type="file" id="file-4" accept="image/*" onchange="previewImg(4)">
+        </div>
+        <div class="photo-box box-5" onclick="triggerFile('file-5')">
+          <span class="plus">+</span><span class="pos-tag">Ảnh 5</span>
+          <img id="prev-5"><input type="file" id="file-5" accept="image/*" onchange="previewImg(5)">
+        </div>
+        <div class="photo-box box-6" onclick="triggerFile('file-6')">
+          <span class="plus">+</span><span class="pos-tag">Ảnh 6 (Ngang dưới)</span>
+          <img id="prev-6"><input type="file" id="file-6" accept="image/*" onchange="previewImg(6)">
+        </div>
       </div>
     </div>
 
-    <script>
-            const SUPABASE_URL = "https://nzngvjlblvzenmltraxg.supabase.co";
-            const SUPABASE_KEY = "sb_publishable_RDiz2uYTwlehbOF8-CxCsQ_6dUE2O2e
-      "; // Dán sb_publishable_... vào đây
+    <div class="form-group">
+      <label>Lời chào màn hình đầu</label>
+      <input type="text" id="greeting" value="✨ Cảm ơn vì đã đến ✨">
+    </div>
 
-            const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    <div class="form-group">
+      <label>Tiêu đề khung ảnh</label>
+      <input type="text" id="title" value="Một góc nhỏ dành cho những kỷ niệm của chúng mình">
+    </div>
 
-            function triggerFile(id) {
-              document.getElementById(id).click();
-            }
+    <div class="form-group">
+      <label>Lời nhắn <span>(Mỗi dòng là một câu)</span></label>
+      <textarea id="message" placeholder="Gửi bạn,&#10;Cảm ơn vì đã đến và đồng hành cùng mình..."></textarea>
+    </div>
 
-            function previewImg(idx) {
-              const input = document.getElementById(`file-${idx}`);
-              const img = document.getElementById(`prev-${idx}`);
-              if (input.files && input.files[0]) {
-                img.src = URL.createObjectURL(input.files[0]);
-                img.style.display = "block";
-              }
-            }
+    <button class="btn-submit" id="btn-submit" onclick="handleUpload()">Tạo Link Móc Khóa</button>
+    <div id="status"></div>
 
-            async function handleUpload() {
-              const recipientName = document
-                .getElementById("recipient_name")
-                .value.trim();
-              const greeting = document.getElementById("greeting").value.trim();
-              const title = document.getElementById("title").value.trim();
-              const message = document.getElementById("message").value.trim();
-              const statusDiv = document.getElementById("status");
-              const btn = document.getElementById("btn-submit");
-              const resultBox = document.getElementById("result-box");
+    <div class="result-box" id="result-box">
+      <p style="color: #166534; margin-bottom: 6px; font-weight: bold; font-size: 14px;">🎉 Link đã tạo thành công!</p>
+      <a id="generated-link" href="#" target="_blank"></a>
+    </div>
+  </div>
 
-              if (!recipientName) {
-                alert("Vui lòng nhập tên người nhận!");
-                return;
-              }
+  <script>
+    const SUPABASE_URL = 'https://nzngvjlblvzenmltraxg.supabase.co';
+    const SUPABASE_KEY = 'sb_publishable_RDiz2uYTwlehbOF8-CxCsQ_6dUE2O2e';
 
-              btn.disabled = true;
-              statusDiv.innerText = "Đang đẩy ảnh lên hệ thống...";
+    const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-              const publicId = "kh_" + Math.random().toString(36).substring(2, 7);
-              const imageUrls = {};
+    function triggerFile(id) { document.getElementById(id).click(); }
 
-              try {
-                // Vòng lặp tải chuẩn 6 ảnh
-                for (let i = 1; i <= 6; i++) {
-                  const fileInput = document.getElementById(`file-${i}`);
-                  if (fileInput.files.length > 0) {
-                    const file = fileInput.files[0];
-                    const fileName = `${publicId}_img_${i}_${Date.now()}.${file.name.split(".").pop()}`;
+    function previewImg(idx) {
+      const input = document.getElementById(`file-${idx}`);
+      const img = document.getElementById(`prev-${idx}`);
+      if (input.files && input.files[0]) {
+        img.src = URL.createObjectURL(input.files[0]);
+        img.style.display = 'block';
+      }
+    }
 
-                    const { error: uploadError } = await _supabase.storage
-                      .from("photos")
-                      .upload(fileName, file);
-                    if (uploadError) throw uploadError;
+    async function handleUpload() {
+      const recipientName = document.getElementById('recipient_name').value.trim();
+      const greeting = document.getElementById('greeting').value.trim();
+      const title = document.getElementById('title').value.trim();
+      const message = document.getElementById('message').value.trim();
+      const statusDiv = document.getElementById('status');
+      const btn = document.getElementById('btn-submit');
+      const resultBox = document.getElementById('result-box');
 
-                    const { data: urlData } = _supabase.storage
-                      .from("photos")
-                      .getPublicUrl(fileName);
-                    imageUrls[`image_${i}`] = urlData.publicUrl;
-                  }
-                }
+      if (!recipientName) { alert('Vui lòng nhập tên người nhận!'); return; }
 
-                statusDiv.innerText = "Đang lưu dữ liệu...";
+      btn.disabled = true;
+      statusDiv.innerText = 'Đang tải ảnh lên hệ thống...';
 
-                const { error: dbError } = await _supabase
-                  .from("friendship_pages")
-                  .insert([
-                    {
-                      public_id: publicId,
-                      recipient_name: recipientName,
-                      greeting: greeting,
-                      title: title,
-                      message: message,
-                      ...imageUrls,
-                    },
-                  ]);
+      const publicId = 'kh_' + Math.random().toString(36).substring(2, 7);
+      
+      const payloadData = {
+        public_id: publicId,
+        recipient_name: recipientName,
+        greeting: greeting,
+        title: title,
+        message: message
+      };
 
-                if (dbError) throw dbError;
+      try {
+        for (let i = 1; i <= 6; i++) {
+          const fileInput = document.getElementById(`file-${i}`);
+          if (fileInput.files.length > 0) {
+            const file = fileInput.files[0];
+            const fileExt = file.name.split('.').pop();
+            const fileName = `${publicId}_img_${i}_${Date.now()}.${fileExt}`;
 
-                const finalLink = `https://tap2menfckeychain.github.io/friendship/?id=${publicId}`;
-                statusDiv.innerText = "";
-                resultBox.style.display = "block";
-                document.getElementById("generated-link").href = finalLink;
-                document.getElementById("generated-link").innerText = finalLink;
-              } catch (err) {
-                console.error(err);
-                statusDiv.innerText = "Có lỗi xảy ra, vui lòng kiểm tra lại!";
-              } finally {
-                btn.disabled = false;
-              }
-            }
-    </script>
-  </body>
+            const { error: uploadError } = await _supabase.storage.from('photos').upload(fileName, file);
+            if (uploadError) throw uploadError;
+
+            const { data: urlData } = _supabase.storage.from('photos').getPublicUrl(fileName);
+            payloadData[`image_${i}`] = urlData.publicUrl;
+          }
+        }
+
+        statusDiv.innerText = 'Đang tạo liên kết...';
+
+        const { error: dbError } = await _supabase.from('friendship_pages').insert([payloadData]);
+        if (dbError) throw dbError;
+
+        const finalLink = `https://tap2menfckeychain.github.io/friendship/?id=${publicId}`;
+        statusDiv.innerText = '';
+        resultBox.style.display = 'block';
+        document.getElementById('generated-link').href = finalLink;
+        document.getElementById('generated-link').innerText = finalLink;
+
+      } catch (err) {
+        console.error(err);
+        statusDiv.innerText = 'Lỗi: ' + (err.message || 'Vui lòng kiểm tra lại Supabase');
+      } finally {
+        btn.disabled = false;
+      }
+    }
+  </script>
+</body>
 </html>
